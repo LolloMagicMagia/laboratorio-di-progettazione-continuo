@@ -149,16 +149,16 @@ export default function ChatPage() {
               const filteredMessages = messagesData.filter((msg) => msg.chatId === chatId);
 
               setMessages((prevMessages) => {
-                const existingMessageIds = new Set(prevMessages.map(msg => msg.id));
-                const newMessages = filteredMessages.filter(msg => !existingMessageIds.has(msg.id));
+                const existingKeys = new Set(
+                    prevMessages.map(msg => `${msg.sender}-${msg.timestamp}-${msg.content}`)
+                );
 
-                if (newMessages.length > 0) {
-                  console.log("📩 Previous messaggi:", existingMessageIds);
-                  console.log("📩 Nuovi messaggi:", newMessages);
-                  return [...prevMessages, ...newMessages];
-                }
+                const newMessages = filteredMessages.filter(msg => {
+                  const key = `${msg.sender}-${msg.timestamp}-${msg.content}`;
+                  return !existingKeys.has(key);
+                });
 
-                return prevMessages;
+                return [...prevMessages, ...newMessages];
               });
             }
         );
@@ -196,9 +196,6 @@ export default function ChatPage() {
     try {
       setSendingMessage(true);
       await API.sendMessage(chatId, newMessage.trim(), currentUserId);
-      /*const updatedMessages = await API.getMessagesByChatId(chatId);
-      setMessages(updatedMessages);
-      setNewMessage("");*/
     } catch (err) {
       console.error("Error sending message:", err);
       setError("Failed to send message. Please try again later.");
@@ -279,17 +276,18 @@ export default function ChatPage() {
         <main className="flex-1 flex flex-col justify-between overflow-hidden">
           <div className="chat-container flex-1 overflow-y-auto">
             <div className="message-list px-4 py-2">
-              {messageGroups.map(group => (
-                  <div key={group.date} className="message-group">
-                    <div className="message-date">
+              {messageGroups.map((group, idx) => (
+                  <div key={`${group.date}-${idx}`} className="message-group">
+                  <div className="message-date">
                       <span className="message-date-text">{group.date}</span>
                     </div>
                     <div className="space-y-3">
-                      {group.messages.map(msg => {
+                      {group.messages.map(((msg, index) => {
                         const isMine = msg.sender === currentUserId;
+                        const key = msg.id || `msg-${index}`;
                         const senderName = usersMap[msg.sender]?.username || "User";
                         return (
-                            <div key={msg.id} className={`message ${isMine ? "message-sent" : "message-received"}`}>
+                            <div key={key} className={`message ${isMine ? "message-sent" : "message-received"}`}>
                               {!isMine && isGroup && (
                                   <p className="text-xs font-bold mb-1">{senderName}</p>
                               )}
@@ -300,7 +298,7 @@ export default function ChatPage() {
                               </p>
                             </div>
                         );
-                      })}
+                      }))}
                     </div>
                   </div>
               ))}
