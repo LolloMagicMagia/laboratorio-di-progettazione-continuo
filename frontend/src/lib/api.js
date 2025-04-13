@@ -53,8 +53,8 @@ const API = {
         }
     },
 
-    // 🔌 Crea client WebSocket
-    createWebSocketClient: (onUsersUpdate, onMessagesUpdate) => {
+// 🔌 Crea client WebSocket
+    createWebSocketClient: (onUsersUpdate = false, onMessagesUpdate = false) => {
         const socket = new SockJS(`${API_BASE}/ws`);
         const client = new Client({
             webSocketFactory: () => socket,
@@ -65,41 +65,44 @@ const API = {
         client.onConnect = () => {
             console.log("✅ WebSocket connesso!");
 
-            // Sottoscrizione per gli utenti (già esistente)
-            client.subscribe("/topic/users", (message) => {
-                console.log("📩 Ricevuto messaggio WebSocket (Utenti):", message.body);
+            if (onUsersUpdate) {
+                console.log("✅ WebSocket dentro on user update!");
+                client.subscribe("/topic/users", (message) => {
+                    console.log("📩 Ricevuto messaggio WebSocket (Utenti):", message.body);
+                    let usersData = JSON.parse(message.body);
+                    if (Array.isArray(usersData)) {
+                        usersData = Object.fromEntries(usersData.map((u) => [u.id, u]));
+                    }
+                    data.users = usersData;
+                    onUsersUpdate(usersData);
+                });
+            }
 
-                let usersData = JSON.parse(message.body);
+            if (onMessagesUpdate) {
+                console.log("✅ WebSocket dentro onMessagesUpdate!");
+                client.subscribe("/topic/chats", (message) => {
+                    console.log("📩 Ricevuto messaggio WebSocket (Messaggi):", message.body);
+                    let rawChats = JSON.parse(message.body);
 
-                if (Array.isArray(usersData)) {
-                    usersData = Object.fromEntries(usersData.map((u) => [u.id, u]));
-                }
+                    // Estrai tutti i messaggi da ogni chat
+                    const normalizedMessages = rawChats.flatMap((chatEntry) => {
+                        const chatId = chatEntry.id;
+                        const messages = chatEntry.chat?.messages || {};
 
-                // 🔥 Aggiorna data.users
-                data.users = usersData;
+                        return Object.entries(messages).map(([messageId, msg]) => ({
+                            id: messageId,
+                            chatId: chatId,
+                            content: msg.content,
+                            sender: msg.sender,
+                            timestamp: msg.timestamp,
+                            read: msg.read,
+                        }));
+                    });
 
-                // ✅ Chiama il callback passando la mappa aggiornata degli utenti
-                onUsersUpdate(usersData);
-            });
-
-            // Sottoscrizione per i messaggi
-            client.subscribe("/topic/chats", (message) => {
-                console.log("📩 Ricevuto messaggio WebSocket (Messaggi):", message.body);
-
-                let messagesData = JSON.parse(message.body);
-
-                if (Array.isArray(messagesData)) {
-                    messagesData = messagesData.map((msg) => ({
-                        content: msg.content,
-                        read: msg.read,
-                        sender: msg.sender,
-                        timestamp: msg.timestamp,
-                    }));
-                }
-
-                // 🔥 Chiama il callback passando i messaggi aggiornati
-                onMessagesUpdate(messagesData);
-            });
+                    console.log("🧩 Messaggi normalizzati:", normalizedMessages);
+                    onMessagesUpdate(normalizedMessages);
+                });
+            }
         };
 
         return client;

@@ -21,14 +21,14 @@ import API from "@/lib/api";
  */
 export default function ChatPage() {
   /**
-   * Parameters extracted from the route using `useParams` hook.
+   * Parameters extracted from the route using useParams hook.
    * @type {Object}
    * @property {string} id - The ID of the current chat, extracted from the URL.
    */
   const params = useParams(); // <-- usa useParams
 
   /**
-   * Search parameters from the URL using `useSearchParams` hook.
+   * Search parameters from the URL using useSearchParams hook.
    * @type {URLSearchParams}
    */
   const searchParams = useSearchParams();
@@ -40,7 +40,7 @@ export default function ChatPage() {
   const title = searchParams.get("name") || "Chat";
 
   /**
-   * The ID of the current chat, extracted from the `params` object.
+   * The ID of the current chat, extracted from the params object.
    * @type {string}
    */
   const chatId = params?.id;
@@ -121,10 +121,11 @@ export default function ChatPage() {
     }
     setCurrentUserId(id);
 
+    let client = null;
+
     const fetchData = async () => {
       try {
         const chatData = await API.getChatById(chatId);
-        console.log("chatdata", chatData);
         if (!chatData) {
           setError("Chat not found");
           setLoading(false);
@@ -133,15 +134,36 @@ export default function ChatPage() {
         setChat(chatData);
 
         const mappedMessages = await API.getMessagesByChatId(chatId);
-        console.log("mappedMessages", mappedMessages);
-
-        setMessages(mappedMessages);
+        setMessages(mappedMessages); // ✅ Prima carichi i messaggi
 
         const userIds = [...new Set(chatData.participants)];
         const users = await Promise.all(userIds.map((uid) => API.getUserById(uid)));
         const map = {};
         users.forEach((u) => (map[u.id] = u));
         setUsersMap(map);
+
+        // ✅ Solo ora crei e attivi il WebSocket
+        client = API.createWebSocketClient(
+            false,
+            (messagesData) => {
+              const filteredMessages = messagesData.filter((msg) => msg.chatId === chatId);
+
+              setMessages((prevMessages) => {
+                const existingMessageIds = new Set(prevMessages.map(msg => msg.id));
+                const newMessages = filteredMessages.filter(msg => !existingMessageIds.has(msg.id));
+
+                if (newMessages.length > 0) {
+                  console.log("📩 Previous messaggi:", existingMessageIds);
+                  console.log("📩 Nuovi messaggi:", newMessages);
+                  return [...prevMessages, ...newMessages];
+                }
+
+                return prevMessages;
+              });
+            }
+        );
+
+        client.activate(); // 🔐 Attiva solo quando tutti i dati sono caricati
 
         setLoading(false);
       } catch (err) {
@@ -153,13 +175,12 @@ export default function ChatPage() {
 
     fetchData();
 
-    // Crea il WebSocket client
-    const client = API.createWebSocketClient(
-        (updatedMessages) => {
-          // Aggiorna i messaggi quando arriva un nuovo messaggio tramite WebSocket
-          setMessages(updatedMessages);
-        }
-    );
+    return () => {
+      if (client) {
+        console.log("🛑 WebSocket disattivato per chatId:", chatId);
+        client.deactivate();
+      }
+    };
   }, [chatId]);
 
   /**
