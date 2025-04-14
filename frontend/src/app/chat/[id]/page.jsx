@@ -238,7 +238,7 @@ export default function ChatPage() {
         <header className="page-header">
           <div className="container mx-auto flex items-center justify-between">
             <div className="flex items-center">
-              <button onClick={() => router.back()} className="btn btn-icon p-2 rounded-full hover:bg-gray-200">
+              <button id="back-button" onClick={() => router.back()} className="btn btn-icon p-2 rounded-full hover:bg-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-800" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
