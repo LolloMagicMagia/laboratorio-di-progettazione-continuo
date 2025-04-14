@@ -48,7 +48,7 @@ public class MessageService {
 
     public CompletableFuture<Void> markChatMessagesAsRead(String chatId, String userId) {
         return chatService.markChatAsRead(chatId, userId);
-    }
+    }//
 
     public CompletableFuture<List<Message>> getMessagesByChatId(String chatId) {
         return chatService.getMessagesMap(chatId)

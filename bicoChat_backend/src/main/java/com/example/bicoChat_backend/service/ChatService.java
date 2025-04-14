@@ -169,7 +169,6 @@ public class ChatService {
                 .thenCompose(existingMessage -> {
                     if (existingMessage != null) {
                         existingMessage.setContent(newContent);
-                        //existingMessage.setTimestamp(LocalDateTime.now().toString());
                         return firebaseService.set(messagePath, existingMessage);
                     }
                     return CompletableFuture.completedFuture(null);

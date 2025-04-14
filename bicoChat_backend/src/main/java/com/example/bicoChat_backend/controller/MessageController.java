@@ -134,7 +134,7 @@ public class MessageController {
         String newContent = payload.get("content");
         return chatService.updateMessage(chatId, messageId, newContent)
                 .thenApply(v -> ResponseEntity.ok().build());
-    }
+    }//
 
     @DeleteMapping("/{chatId}/delete/{messageId}")
     public CompletableFuture<ResponseEntity<Void>> deleteMessage(

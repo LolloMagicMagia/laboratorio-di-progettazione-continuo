@@ -13,7 +13,7 @@ const API = {
     getCurrentUser: async () => {
         const currentUserId = localStorage.getItem("currentUserId");
         if (!currentUserId || !data.users[currentUserId]) return null;
-
+        //
         const userData = data.users[currentUserId].user;
 
         return {
