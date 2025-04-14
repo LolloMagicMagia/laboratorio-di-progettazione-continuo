@@ -1,9 +1,18 @@
+// src/app/login/page.jsx
+
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
+import { auth, provider } from "../../firebase";
 import "./styles.css";
 
+/**
+ * LoginPage - Login view ("/login").
+ * @module frontend/page/src/app/login/page.jsx
+ * @description Allows users to log in with email/password or via Google using Firebase Auth.
+ */
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -20,41 +29,54 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const query = new URLSearchParams({
-        email: form.email,
-        password: form.password,
-      }).toString();
+      const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password);
+      const idToken = await userCredential.user.getIdToken();
 
-      const res = await fetch("http://localhost:8080/api/auth/login", {
+      const res = await fetch("http://localhost:8080/api/auth/google", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Login fallito: ${text}`);
+        await res.text();
       }
 
-      const text = await res.text();
-
-      // Cerca il localId (che rappresenta l'UID)
-      const match = text.match(/"localId"\s*:\s*"([^"]+)"/);
-      if (!match) {
-        throw new Error("Impossibile ottenere UID dell'utente");
-      }
-
-      const uid = match[1];
-      localStorage.setItem("currentUserId", uid);
-      localStorage.setItem("currentUserEmail", form.email);
+      const userData = await res.json();
+      localStorage.setItem("currentUserId", userData.uid);
+      localStorage.setItem("currentUserEmail", userData.email);
       router.push("/");
     } catch (err) {
       setError(err.message || "Errore durante il login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+
+      const res = await fetch("http://localhost:8080/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!res.ok) {
+        await res.text();
+      }
+
+      const userData = await res.json();
+      localStorage.setItem("currentUserId", userData.uid);
+      localStorage.setItem("currentUserEmail", userData.email);
+      router.push("/");
+    } catch (err) {
+      setError("Login con Google fallito: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -71,42 +93,23 @@ export default function LoginPage() {
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="email">Email</label>
-              <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  placeholder="Inserisci la tua email"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
-              />
+              <input type="email" name="email" id="email" value={form.email} onChange={handleChange} required />
             </div>
 
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  placeholder="Inserisci la tua password"
-                  value={form.password}
-                  onChange={handleChange}
-                  required
-              />
-            </div>
-
-            <div className="form-options">
-              <div className="remember-me">
-                <input type="checkbox" id="remember" name="remember" />
-                <label htmlFor="remember">Ricordami</label>
-              </div>
-              <a href="#" className="forgot-password">Password dimenticata?</a>
+              <input type="password" name="password" id="password" value={form.password} onChange={handleChange} required />
             </div>
 
             <button type="submit" className="login-button" disabled={loading}>
               {loading ? "Accesso in corso..." : "Accedi"}
             </button>
           </form>
+
+          <button onClick={handleGoogleLogin} className="google-button">
+            Accedi con Google
+          </button>
+
 
           {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
 

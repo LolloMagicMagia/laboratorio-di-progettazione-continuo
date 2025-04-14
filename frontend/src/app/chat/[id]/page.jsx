@@ -213,7 +213,7 @@ export default function ChatPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen text-xl font-semibold">Loading...</div>;
+    return <div>Loading...</div>;
   }
 
   if (error) {
@@ -244,9 +244,14 @@ export default function ChatPage() {
                 </svg>
               </button>
             </div>
-            <div className="flex flex-row items-center gap-2">
+            <div style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "0.5rem", // perché `gap-2` in Tailwind è 0.5rem
+            }}>
               <img src={chatAvatar} alt={title} className="user-avatar h-8 w-8" />
-              <h1 className="text-xs font-medium text-gray-700">{title}</h1>
+              <h1 style={{color: "white"}}>{title}</h1>
             </div>
           </div>
         </header>
@@ -270,7 +275,7 @@ export default function ChatPage() {
                                   <div className="absolute top-1 right-1 z-10">
                                     <button
                                         onClick={() => toggleMenu(msg.id)}
-                                        style={{backgroundColor: "#4338ca", color: "white"}}
+                                        style={{backgroundColor: "#990033", color: "white", borderColor: "#ac5456"}}
                                     >
                                       ⋮
                                     </button>
@@ -279,13 +284,13 @@ export default function ChatPage() {
                                         <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow z-50 text-sm">
                                           <button
                                               onClick={() => handleEditMessage(msg)}
-                                              style={{backgroundColor: "#4338ca", color: "white"}}
+                                              style={{backgroundColor: "#990033", color: "white", borderColor: "#ac5456"}}
                                           >
                                             Modifica messaggio
                                           </button>
                                           <button
                                               onClick={() => handleDeleteMessage(msg)}
-                                              style={{backgroundColor: "#4338ca", color: "white"}}
+                                              style={{backgroundColor: "#990033", color: "white", borderColor: "#ac5456"}}
                                           >
                                             Elimina messaggio
                                           </button>
@@ -302,7 +307,8 @@ export default function ChatPage() {
                                     <p>{msg.content}</p>
                                     <p className="message-time">
                                       {formatMessageTime(msg.timestamp)}
-                                      {isMine && <span className="ml-1">{msg.read ? "✓✓" : "✓"}</span>}
+                                      {isMine && <span style={{color: "#990033", fontWeight: "900"}}>{msg.read ? "a" : "a"}</span>}
+                                      {isMine && <span style={{color: "white", fontWeight: "900"}}>{msg.read ? "✓✓" : "✓"}</span>}
                                     </p>
                                   </>
                               ) : (

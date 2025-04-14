@@ -17,6 +17,12 @@ public class User {
     @JsonProperty("chatUser")
     private Map<String, ChatInfo> chatUser;
 
+    @JsonProperty("email")
+    private String email;
+
+    @JsonProperty("avatar")
+    private String avatar;
+
     // Chat Info
     public static class ChatInfo {
         @JsonProperty("lastMessage")
@@ -75,6 +81,7 @@ public class User {
             return unreadCount;
         }
 
+
         public void setUnreadCount(int unreadCount) {
             this.unreadCount = unreadCount;
         }
@@ -129,6 +136,22 @@ public class User {
     // Getter and Setter
     public String getUsername() {
         return username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
     }
 
     public void setUsername(String username) {

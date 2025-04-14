@@ -7,6 +7,11 @@ const data = {
     users: {}  // ← questa verrà aggiornata dopo una fetch o WebSocket
 };
 
+function getCurrentUserId() {
+    console.log(localStorage.getItem("currentUserId"));
+    return localStorage.getItem("currentUserId");
+}
+
 
 const API = {
     // 👤 Recupera l'utente corrente da localStorage
@@ -143,19 +148,56 @@ const API = {
         });
     },
 
+    // Carica lista amici
+    async getFriendsList() {
+        const uid = getCurrentUserId();
+        console.log("👤 UID corrente:", uid);
+        const res = await fetch(`http://localhost:8080/api/friends/${uid}`);
+        if (!res.ok) throw new Error("Errore nel caricamento della lista amici");
+        return await res.json();
+    },
 
-    /*
-        getFriendsList: () => {
-            return fetch(`${API_BASE}/api/friends`).then((res) => res.json());
-        },
+    // Invia richiesta di amicizia
+    async sendFriendRequest(toUserId) {
+        const fromUid = getCurrentUserId();
+        const res = await fetch("http://localhost:8080/api/friends/request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fromUid, toUid: toUserId }),
+        });
+        if (!res.ok) throw new Error("Errore nell'invio della richiesta");
+    },
 
-        createIndividualChatIfNotExists: (friendId, message) => {
-            return fetch(`${API_BASE}/api/chat/individual`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ friendId, message }),
-            });
-        },*/
+    // 🔍 Carica richieste ricevute
+    async getFriendRequestsList() {
+        const toUid = getCurrentUserId();
+        const res = await fetch(`${API_BASE}/api/friends/requests/${toUid}`);
+        if (!res.ok) throw new Error("Errore nel caricamento delle richieste di amicizia");
+        return await res.json();
+    },
+
+    // ✔️ Accetta una richiesta di amicizia
+    async acceptFriendRequest(fromUid) {
+        const toUid = getCurrentUserId();
+        const res = await fetch(`${API_BASE}/api/friends/accept`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fromUid, toUid }),
+        });
+        if (!res.ok) throw new Error("Errore nell'accettazione della richiesta");
+    },
+
+    // ❌ Rifiuta una richiesta di amicizia
+    async rejectFriendRequest(fromUid) {
+        const toUid = getCurrentUserId();
+        const res = await fetch(`${API_BASE}/api/friends/request`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fromUid, toUid }),
+        });
+        if (!res.ok) throw new Error("Errore nel rifiuto della richiesta");
+    },
+
 };
 
 export default API;

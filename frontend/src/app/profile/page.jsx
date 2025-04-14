@@ -86,13 +86,14 @@ export default function ProfilePage() {
       <div className="page-container">
         {/* Header */}
         <header className="page-header">
-          <div className="container mx-auto flex items-center">
+          <div style={{display: "flex", alignItems: "center"}}>
             <button onClick={() => router.push("/")} className="btn btn-icon">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-xl font-bold ml-3">Il tuo profilo</h1>
+            <h1 className="font-bold" style={{color: "#990033"}}>II</h1>
+            <h1 className="font-bold">Il tuo profilo</h1>
           </div>
         </header>
 
@@ -140,22 +141,30 @@ export default function ProfilePage() {
             </div>
 
             {/* Altri dettagli */}
+            <div className="profile-infos">
             <div className="border-t mt-6">
               <dl className="divide-y">
-                <div className="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                  <dt className="text-sm font-medium text-gray-500">ID Utente</dt>
+                <div className="font-boldy2">
+                  <dt className="text-sm font-medium text-gray-500">ID Utente:</dt>
+                </div>
+                <div className="font-boldy3">
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{currentUser.id}</dd>
                 </div>
-                <div className="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                  <dt className="text-sm font-medium text-gray-500">Stato</dt>
+                <div className="font-boldy2">
+                  <dt className="text-sm font-medium text-gray-500">Stato:</dt>
+                </div>
+                <div className="font-boldy3">
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 capitalize">{currentUser.status}</dd>
                 </div>
-                <div className="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                  <dt className="text-sm font-medium text-gray-500">Avatar URL</dt>
+                <div className="font-boldy2">
+                  <dt className="text-sm font-medium text-gray-500">Avatar URL:</dt>
+                </div>
+                <div className="font-boldy3">
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 truncate">{currentUser.avatar}</dd>
                 </div>
               </dl>
             </div>
+          </div>
           </div>
         </main>
       </div>

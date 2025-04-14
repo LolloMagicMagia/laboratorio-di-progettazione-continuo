@@ -19,6 +19,12 @@ export default function Home() {
   const [chats, setChats] = useState([]);
 
   /**
+   * Stores the filtered list of chats based on search.
+   * @type {Array<Object>}
+   */
+  const [filteredChats, setFilteredChats] = useState([]);
+
+  /**
    * Stores the current user's data.
    * @type {Object|null}
    */
@@ -35,6 +41,14 @@ export default function Home() {
    * @type {string|null}
    */
   const [error, setError] = useState(null);
+
+  const [hasFriendRequests, setHasFriendRequests] = useState(false);
+
+  /**
+   * Stores the current search query.
+   * @type {string}
+   */
+  const [searchQuery, setSearchQuery] = useState("");
 
   const router = useRouter();
 
@@ -57,6 +71,9 @@ export default function Home() {
       try {
         await API.fetchUsers(); // 🔁 Prima carico tutti gli utenti
         const user = await API.getCurrentUser();
+        const requests = await API.getFriendRequestsList();
+        console.log("📬 Sbrend requests:", requests);
+        setHasFriendRequests(requests.length > 0);
         if (!user) throw new Error("Utente non trovato");
         setCurrentUser(user);
 
@@ -67,9 +84,10 @@ export default function Home() {
           lastMessage: chatData.lastMessage,
           timestamp: chatData.timestamp,
           unreadCount: chatData.unreadCount
-        }));
+        })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         setChats(fetchedChats);
+        setFilteredChats(fetchedChats);
         setLoading(false);
       } catch (err) {
         console.error("Errore nel caricamento dei dati:", err);
@@ -91,9 +109,10 @@ export default function Home() {
           lastMessage: chatData.lastMessage,
           timestamp: chatData.timestamp,
           unreadCount: chatData.unreadCount
-        }));
+        })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         setChats(updatedChats);
+        setFilteredChats(updatedChats);
       });
     });
 
@@ -115,7 +134,6 @@ export default function Home() {
    * @returns {Promise<void>}
    */
   const handleChatClick = async (chatId, chatName, lastUser, unreadCount) => {
-    console.log("tutto: ", chatId, " ", chatName, " ", lastUser, " ", unreadCount);
     try {
       if (!currentUser) {
         console.error("Utente non loggato");
@@ -138,6 +156,18 @@ export default function Home() {
   };
 
   /**
+   * Handles search query changes and filters the chat list.
+   * @param {string} value - Search input string
+   */
+  const handleSearch = (value) => {
+    setSearchQuery(value);
+    const filtered = chats.filter(chat =>
+        chat.name.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredChats(filtered);
+  };
+
+  /**
    * Renders the visual status of message read/unread indicators.
    * @function renderReadStatus
    * @param {string} lastUser - ID of the last user who sent a message.
@@ -149,7 +179,7 @@ export default function Home() {
 
     if (lastUser === currentUser.id) {
       return (
-          <span className="message-read-status text-green-500 font-bold">
+          <span className="font-boldy">
           {unreadCount > 0 ? "✓" : "✓✓"}
         </span>
       );
@@ -157,12 +187,24 @@ export default function Home() {
 
     if (unreadCount > 0) {
       return (
-          <span className="message-unread-status text-red-500 font-bold">
+          <span className="font-boldy2">
           {unreadCount > 9 ? "9+" : unreadCount}
         </span>
       );
     }
     return null;
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleString([], {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
   };
 
   if (loading) {
@@ -184,11 +226,11 @@ export default function Home() {
           <div className="container mx-auto flex justify-between items-center">
             <h1 className="text-xl font-bold">BicoChat</h1>
             {currentUser && (
-                <Link href="/profile" className="flex items-center">
+                <Link href="/profile" style={{color: "white"}}>
                   <img
                       src={currentUser.avatar || "https://dummyimage.com/40x40/000/fff&text=U"}
                       alt={currentUser.username}
-                      className="w-8 h-8 rounded-full mr-2"
+                      className="user-avatar"
                   />
                   <span>{currentUser.username}</span>
                 </Link>
@@ -196,22 +238,29 @@ export default function Home() {
           </div>
         </header>
         <main className="page-content">
-          <div className="card">
-            <div className="card-header">
-              <h2 className="text-lg font-semibold">Le tue chat</h2>
+          <h2 className="font-bold" style={{ display: "flex", justifyContent: "center", alignItems: "center", color: "black" }}>Bicoccati Anche Tu!</h2>
+          <div className="card" style={{ margin: "0 auto" }}>
+            <div className="card-header" style={{ borderBottom: "2px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <p className="font-bold" style={{ display: "flex", justifyContent: "center", alignItems: "center", color: "black" }}></p>
+              <input
+                  type="text"
+                  placeholder="Cerca tra le tue chat..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="search-card"
+              />
             </div>
             <div>
-              {chats.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">Nessuna chat attiva.</div>
+              {filteredChats.length === 0 ? (
+                  <div style={{display: "flex", justifyContent: "center", alignItems: "center"}}>Nessuna chat trovata</div>
               ) : (
                   <div className="divide-y">
-                    {chats.map(chat => (
+                    {filteredChats.map(chat => (
                         <div
                             key={chat.chatId}
                             className={`chat-list-item ${chat.unreadCount > 0 ? "unread" : ""}`}
                             onClick={() => handleChatClick(chat.chatId, chat.name, chat.lastUser, chat.unreadCount)}
                         >
-                          {/* Chat avatar */}
                           <div className="chat-avatar">
                             <img
                                 src="https://dummyimage.com/48x48/000/fff&text=C"
@@ -219,21 +268,15 @@ export default function Home() {
                                 className="chat-avatar-image"
                             />
                           </div>
-
-                          {/* Chat information */}
                           <div className="chat-info">
                             <div className="chat-header">
-                              {/* Chat name with icon */}
                               <h3 className="chat-name flex items-center">
                                 {chat.name}
                               </h3>
-                              {/* Last message timestamp */}
-                              <span className="chat-time">{chat.timestamp}</span>
+                              <span className="chat-time">{formatTimestamp(chat.timestamp)}</span>
                             </div>
-
-                            {/* Last message preview with status icon */}
                             <div className="flex items-center">
-                              <span className="mr-2">{renderReadStatus(chat.lastUser, chat.unreadCount)}</span>
+                              <span className="mr-2">{renderReadStatus(chat.lastUser, chat.unreadCount)} </span>
                               <span className="chat-message-preview">{chat.lastMessage}</span>
                             </div>
                           </div>
@@ -243,15 +286,31 @@ export default function Home() {
               )}
             </div>
           </div>
-          <Link href="/new-chat" className="btn-floating">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </Link>
-        </main>
+          <div style={{ position: "relative"}}>
+            <Link href="/new-chat" className="btn-floating">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {hasFriendRequests && (
+                  <span
+                      style={{
+                        position: "absolute",
+                        top: "0px",
+                        right: "-4px",
+                        height: "12px",
+                        width: "12px",
+                        backgroundColor: "#22c55e", // green-500
+                        borderRadius: "50%",
+                        border: "2px solid white",
+                        animation: "pulse 1.5s infinite",
+                        zIndex: 9999
+                      }}
+                  ></span>
+              )}
+            </Link>
+          </div>
 
-        {/* DEBUG: Switch utente (solo in sviluppo) */}
-        {/* DEBUG: Switch utente (solo in sviluppo) */}
+        </main>
         {process.env.NODE_ENV === "development" && (
             <div className="fixed bottom-4 right-4 z-50 bg-white p-4 rounded shadow-lg border">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -274,7 +333,7 @@ export default function Home() {
                     }
 
                     localStorage.setItem("currentUserId", newId);
-                    router.push('/redirect-back');
+                    router.push("/redirect-back");
                   }}
                   className="w-full bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600"
               >
