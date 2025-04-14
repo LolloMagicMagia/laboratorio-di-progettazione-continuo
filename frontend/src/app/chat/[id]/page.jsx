@@ -278,7 +278,7 @@ export default function ChatPage() {
             <div className="message-list px-4 py-2">
               {messageGroups.map((group, idx) => (
                   <div key={`${group.date}-${idx}`} className="message-group">
-                  <div className="message-date">
+                    <div className="message-date">
                       <span className="message-date-text">{group.date}</span>
                     </div>
                     <div className="space-y-3">
