@@ -162,4 +162,24 @@ public class ChatService {
 
     }
 
+    public CompletableFuture<Void> updateMessage(String chatId, String messageId, String newContent) {
+        String messagePath = CHATS_PATH + "/" + chatId + "/messages/" + messageId;
+
+        return firebaseService.get(messagePath, Message.class)
+                .thenCompose(existingMessage -> {
+                    if (existingMessage != null) {
+                        existingMessage.setContent(newContent);
+                        //existingMessage.setTimestamp(LocalDateTime.now().toString());
+                        return firebaseService.set(messagePath, existingMessage);
+                    }
+                    return CompletableFuture.completedFuture(null);
+                });
+    }
+
+    public CompletableFuture<Void> deleteMessage(String chatId, String messageId) {
+        String messagePath = CHATS_PATH + "/" + chatId + "/messages/" + messageId;
+        return firebaseService.delete(messagePath);
+    }
+
+
 }

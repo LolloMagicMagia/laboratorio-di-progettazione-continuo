@@ -1,118 +1,46 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { useParams } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import API from "@/lib/api";
 
-/**
- * ChatPage Component - Displays a single chat interface.
- *
- *
- * This component:
- * - Retrieves the chat ID from the URL
- * - Loads chat and participant data
- * - Polls for new messages
- * - Allows the user to send new messages
- *
- * @module frontend/page/src/app/chat/id/page.jsx
- * @returns {JSX.Element} The rendered chat page.
- */
 export default function ChatPage() {
-  /**
-   * Parameters extracted from the route using useParams hook.
-   * @type {Object}
-   * @property {string} id - The ID of the current chat, extracted from the URL.
-   */
-  const params = useParams(); // <-- usa useParams
-
-  /**
-   * Search parameters from the URL using useSearchParams hook.
-   * @type {URLSearchParams}
-   */
+  const params = useParams();
   const searchParams = useSearchParams();
-
-  /**
-   * The title of the chat, either from the search parameters or defaulting to "Chat".
-   * @type {string}
-   */
   const title = searchParams.get("name") || "Chat";
-
-  /**
-   * The ID of the current chat, extracted from the params object.
-   * @type {string}
-   */
   const chatId = params?.id;
 
-  /**
-   * The state holding the current chat data.
-   * @type {Object|null}
-   */
   const [chat, setChat] = useState(null);
-
-  /**
-   * The state holding the list of messages in the current chat.
-   * @type {Array<Object>}
-   */
   const [messages, setMessages] = useState([]);
-
-  /**
-   * The ID of the current user.
-   * @type {string|null}
-   */
   const [currentUserId, setCurrentUserId] = useState(null);
-
-  /**
-   * The content of the new message being typed by the user.
-   * @type {string}
-   */
   const [newMessage, setNewMessage] = useState("");
-
-  /**
-   * The loading state for chat and messages.
-   * @type {boolean}
-   */
   const [loading, setLoading] = useState(true);
-
-  /**
-   * The loading state for sending a message.
-   * @type {boolean}
-   */
   const [sendingMessage, setSendingMessage] = useState(false);
-
-  /**
-   * The error message if any occurs during loading or interaction.
-   * @type {string|null}
-   */
   const [error, setError] = useState(null);
-
-  /**
-   * A map of user IDs to their corresponding user data.
-   * @type {Object}
-   */
   const [usersMap, setUsersMap] = useState({});
-
-  /**
-   * A reference to the bottom of the messages list, used for auto-scrolling.
-   * @type {React.RefObject}
-   */
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editedText, setEditedText] = useState("");
   const messagesEndRef = useRef(null);
-
-  /**
-   * Router object for navigating programmatically.
-   * @type {Object}
-   * @property {function} push - Function to navigate to a new route.
-   */
   const router = useRouter();
 
-  /**
-   * Loads chat, messages and user data on mount.
-   * Also sets up polling every 5 seconds.
-   * @function useEffect
-   * @async
-   * @returns {void}
-   */
+  const markChatAsReadIfNeeded = () => {
+    const lastMsg = messages[messages.length - 1];
+    const isLastFromOtherUser = lastMsg && lastMsg.sender !== currentUserId;
+
+    if (
+        document.visibilityState === "visible" &&
+        document.hasFocus() &&
+        chatId &&
+        currentUserId &&
+        messages.length > 0 &&
+        isLastFromOtherUser
+    ) {
+      console.log("✅ Lettura aggiornata");
+      API.markChatAsRead(chatId).catch(console.error);
+    }
+  };
+
   useEffect(() => {
     const id = localStorage.getItem("currentUserId");
     if (!id) {
@@ -134,7 +62,7 @@ export default function ChatPage() {
         setChat(chatData);
 
         const mappedMessages = await API.getMessagesByChatId(chatId);
-        setMessages(mappedMessages); // ✅ Prima carichi i messaggi
+        setMessages(mappedMessages);
 
         const userIds = [...new Set(chatData.participants)];
         const users = await Promise.all(userIds.map((uid) => API.getUserById(uid)));
@@ -142,29 +70,32 @@ export default function ChatPage() {
         users.forEach((u) => (map[u.id] = u));
         setUsersMap(map);
 
-        // ✅ Solo ora crei e attivi il WebSocket
         client = API.createWebSocketClient(
             false,
             (messagesData) => {
               const filteredMessages = messagesData.filter((msg) => msg.chatId === chatId);
 
               setMessages((prevMessages) => {
-                const existingKeys = new Set(
-                    prevMessages.map(msg => `${msg.sender}-${msg.timestamp}-${msg.content}`)
-                );
+                const prevMap = new Map(prevMessages.map((m) => [m.id, m]));
+                const newMap = new Map();
 
-                const newMessages = filteredMessages.filter(msg => {
-                  const key = `${msg.sender}-${msg.timestamp}-${msg.content}`;
-                  return !existingKeys.has(key);
+                filteredMessages.forEach((msg) => {
+                  const prev = prevMap.get(msg.id);
+                  newMap.set(msg.id, {
+                    ...prev,
+                    ...msg,
+                    timestamp: prev?.timestamp ?? msg.timestamp, // preserva timestamp originale se esiste
+                  });
                 });
 
-                return [...prevMessages, ...newMessages];
+                return Array.from(newMap.values()).sort(
+                    (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+                );
               });
             }
         );
 
-        client.activate(); // 🔐 Attiva solo quando tutti i dati sono caricati
-
+        client.activate();
         setLoading(false);
       } catch (err) {
         console.error("Error loading chat data:", err);
@@ -176,26 +107,47 @@ export default function ChatPage() {
     fetchData();
 
     return () => {
-      if (client) {
-        console.log("🛑 WebSocket disattivato per chatId:", chatId);
+      if (client?.active) {
+        console.log("🚩 WebSocket disattivato per chatId:", chatId);
         client.deactivate();
       }
+      setMessages([]);
     };
   }, [chatId]);
 
-  /**
-   * Sends a message to the current chat.
-   * @function handleSendMessage
-   * @async
-   * @param {Event} e - The form submission event.
-   * @returns {Promise<void>}
-   */
+  useEffect(() => {
+    if (sendingMessage) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    const handleFocusOrVisibility = () => {
+      markChatAsReadIfNeeded();
+    };
+
+    window.addEventListener("focus", handleFocusOrVisibility);
+    document.addEventListener("visibilitychange", handleFocusOrVisibility);
+
+    markChatAsReadIfNeeded();
+
+    return () => {
+      window.removeEventListener("focus", handleFocusOrVisibility);
+      document.removeEventListener("visibilitychange", handleFocusOrVisibility);
+    };
+  }, [messages, chatId, currentUserId]);
+
+
+
+
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
     try {
       setSendingMessage(true);
       await API.sendMessage(chatId, newMessage.trim(), currentUserId);
+      setNewMessage("");
     } catch (err) {
       console.error("Error sending message:", err);
       setError("Failed to send message. Please try again later.");
@@ -204,26 +156,54 @@ export default function ChatPage() {
     }
   };
 
-  /**
-   * Formats a timestamp string into "HH:mm".
-   * @function formatMessageTime
-   * @param {string} timestamp
-   * @returns {string}
-   */
+  const handleEditMessage = (msg) => {
+    setEditingId(msg.id);
+    setEditedText(msg.content);
+    setOpenMenuId(null);
+  };
+
+  const submitEdit = async (e, messageId) => {
+    e.preventDefault();
+    if (!editedText.trim()) return;
+
+    try {
+      await API.updateMessage(chatId, messageId, editedText.trim());
+      setEditingId(null);
+      setEditedText("");
+    } catch (err) {
+      console.error("Errore durante la modifica:", err);
+    }
+  };
+
+  const handleDeleteMessage = async (msg) => {
+    if (!msg?.id) {
+      console.error("❌ Impossibile eliminare messaggio: id mancante", msg);
+      return;
+    }
+
+    try {
+      console.log("🧪 Cancella messaggio:", msg);
+      await API.deleteMessage(chatId, msg.id);
+    } catch (err) {
+      console.error("Errore durante l'eliminazione:", err);
+    } finally {
+      setOpenMenuId(null);
+    }
+  };
+
+  const toggleMenu = (id) => {
+    setOpenMenuId((prev) => (prev === id ? null : id));
+  };
+
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
-  /**
-   * Groups messages by the date they were sent.
-   * @function groupMessagesByDate
-   * @returns {Array<{ date: string, messages: Array<Object> }>}
-   */
   const groupMessagesByDate = () => {
     const groups = {};
-    messages.forEach(message => {
+    messages.forEach((message) => {
       const date = new Date(message.timestamp || Date.now()).toDateString();
       if (!groups[date]) groups[date] = [];
       groups[date].push(message);
@@ -245,10 +225,7 @@ export default function ChatPage() {
   }
 
   const isGroup = chat.type === "group";
-
-  // Verifica che chat.participants sia un array e che non sia vuoto
   const otherUser = !isGroup && Array.isArray(chat.participants) && chat.participants.find(pid => pid !== currentUserId);
-
   const chatAvatar = isGroup
       ? chat.avatar || "https://dummyimage.com/40x40/000/fff&text=G"
       : otherUser && usersMap[otherUser]?.avatar || "https://dummyimage.com/40x40/000/fff&text=U";
@@ -278,27 +255,79 @@ export default function ChatPage() {
             <div className="message-list px-4 py-2">
               {messageGroups.map((group, idx) => (
                   <div key={`${group.date}-${idx}`} className="message-group">
-                    <div className="message-date">
+                  <div className="message-date">
                       <span className="message-date-text">{group.date}</span>
                     </div>
                     <div className="space-y-3">
-                      {group.messages.map(((msg, index) => {
+                      {group.messages.map((msg, index) => {
                         const isMine = msg.sender === currentUserId;
                         const key = msg.id || `msg-${index}`;
                         const senderName = usersMap[msg.sender]?.username || "User";
                         return (
-                            <div key={key} className={`message ${isMine ? "message-sent" : "message-received"}`}>
-                              {!isMine && isGroup && (
-                                  <p className="text-xs font-bold mb-1">{senderName}</p>
+                            <div key={key} className={`message relative ${isMine ? "message-sent" : "message-received"}`}>
+                            {isMine && (
+                                  <div className="absolute top-1 right-1 z-10">
+                                    <button
+                                        onClick={() => toggleMenu(msg.id)}
+                                        style={{backgroundColor: "#4338ca", color: "white"}}
+                                    >
+                                      ⋮
+                                    </button>
+
+                                    {openMenuId === msg.id && (
+                                        <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow z-50 text-sm">
+                                          <button
+                                              onClick={() => handleEditMessage(msg)}
+                                              style={{backgroundColor: "#4338ca", color: "white"}}
+                                          >
+                                            Modifica messaggio
+                                          </button>
+                                          <button
+                                              onClick={() => handleDeleteMessage(msg)}
+                                              style={{backgroundColor: "#4338ca", color: "white"}}
+                                          >
+                                            Elimina messaggio
+                                          </button>
+                                        </div>
+                                    )}
+                                  </div>
                               )}
-                              <p>{msg.content}</p>
-                              <p className="message-time">
-                                {formatMessageTime(msg.timestamp)}
-                                {isMine && <span className="ml-1">{msg.read ? "✓✓" : "✓"}</span>}
-                              </p>
+
+                              {!editingId || editingId !== msg.id ? (
+                                  <>
+                                    {!isMine && isGroup && (
+                                        <p className="text-xs font-bold mb-1">{senderName}</p>
+                                    )}
+                                    <p>{msg.content}</p>
+                                    <p className="message-time">
+                                      {formatMessageTime(msg.timestamp)}
+                                      {isMine && <span className="ml-1">{msg.read ? "✓✓" : "✓"}</span>}
+                                    </p>
+                                  </>
+                              ) : (
+                                  <form onSubmit={(e) => submitEdit(e, msg.id)}>
+                                    <input
+                                        type="text"
+                                        value={editedText}
+                                        onChange={(e) => setEditedText(e.target.value)}
+                                        className="w-full p-1 text-sm border rounded"
+                                        autoFocus
+                                    />
+                                    <div className="flex gap-2 mt-1">
+                                      <button type="submit" style={{backgroundColor: "#4338ca", color: "white"}}>Salva</button>
+                                      <button
+                                          type="button"
+                                          style={{backgroundColor: "#4338ca", color: "white"}}
+                                          onClick={() => setEditingId(null)}
+                                      >
+                                        Annulla
+                                      </button>
+                                    </div>
+                                  </form>
+                              )}
                             </div>
                         );
-                      }))}
+                      })}
                     </div>
                   </div>
               ))}

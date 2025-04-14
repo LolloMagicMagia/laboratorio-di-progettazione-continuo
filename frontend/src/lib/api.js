@@ -129,19 +129,33 @@ const API = {
         });
     },
 
-
-/*
-    getFriendsList: () => {
-        return fetch(`${API_BASE}/api/friends`).then((res) => res.json());
+    updateMessage: (chatId, messageId, newContent) => {
+        return fetch(`${API_BASE}/api/messages/${chatId}/update/${messageId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: newContent }),
+        });
     },
 
-    createIndividualChatIfNotExists: (friendId, message) => {
-        return fetch(`${API_BASE}/api/chat/individual`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ friendId, message }),
+    deleteMessage: (chatId, messageId) => {
+        return fetch(`${API_BASE}/api/messages/${chatId}/delete/${messageId}`, {
+            method: "DELETE"
         });
-    },*/
+    },
+
+
+    /*
+        getFriendsList: () => {
+            return fetch(`${API_BASE}/api/friends`).then((res) => res.json());
+        },
+
+        createIndividualChatIfNotExists: (friendId, message) => {
+            return fetch(`${API_BASE}/api/chat/individual`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ friendId, message }),
+            });
+        },*/
 };
 
 export default API;

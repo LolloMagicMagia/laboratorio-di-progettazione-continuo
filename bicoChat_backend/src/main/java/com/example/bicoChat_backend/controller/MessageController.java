@@ -2,6 +2,7 @@ package com.example.bicoChat_backend.controller;
 
 
 import com.example.bicoChat_backend.model.Message;
+import com.example.bicoChat_backend.service.ChatService;
 import com.example.bicoChat_backend.service.FirebaseService;
 
 import com.example.bicoChat_backend.service.MessageService;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @RestController
@@ -28,6 +30,9 @@ public class MessageController {
 
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+
+    @Autowired
+    private ChatService chatService;
 
     @PostConstruct
     public void initFirebaseMessageListener() {
@@ -119,5 +124,26 @@ public class MessageController {
             return ResponseEntity.status(500).body("Errore durante l'invio del messaggio");
         }
     }
+
+    @PutMapping("/{chatId}/update/{messageId}")
+    public CompletableFuture<ResponseEntity<Void>> updateMessage(
+            @PathVariable String chatId,
+            @PathVariable String messageId,
+            @RequestBody Map<String, String> payload) {
+
+        String newContent = payload.get("content");
+        return chatService.updateMessage(chatId, messageId, newContent)
+                .thenApply(v -> ResponseEntity.ok().build());
+    }
+
+    @DeleteMapping("/{chatId}/delete/{messageId}")
+    public CompletableFuture<ResponseEntity<Void>> deleteMessage(
+            @PathVariable String chatId,
+            @PathVariable String messageId) {
+
+        return chatService.deleteMessage(chatId, messageId)
+                .thenApply(v -> ResponseEntity.ok().build());
+    }
+
 
 }

@@ -54,7 +54,13 @@ public class MessageService {
         return chatService.getMessagesMap(chatId)
                 .thenApply(messagesMap -> {
                     if (messagesMap == null) return Collections.emptyList();
-                    return messagesMap.values().stream()
+
+                    return messagesMap.entrySet().stream()
+                            .map(entry -> {
+                                Message message = entry.getValue();
+                                message.setId(entry.getKey()); // 👈 imposta l'ID sul messaggio
+                                return message;
+                            })
                             .sorted(Comparator.comparing(Message::getTimestamp))
                             .collect(Collectors.toList());
                 });

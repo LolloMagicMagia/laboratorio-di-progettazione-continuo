@@ -3,7 +3,6 @@ package com.example.bicoChat_backend.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Message {
 
@@ -19,9 +18,10 @@ public class Message {
     @JsonProperty("read")
     private boolean read;
 
-    // Constructors
-    public Message() {
-    }
+    // ✅ ID aggiunto per supportare modifica/eliminazione
+    private String id;
+
+    public Message() {}
 
     public Message(String content, String sender, String timestamp, boolean read) {
         this.content = content;
@@ -63,10 +63,19 @@ public class Message {
         this.read = read;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Override
     public String toString() {
         return "Message{" +
-                "content='" + content + '\'' +
+                "id='" + id + '\'' +
+                ", content='" + content + '\'' +
                 ", sender='" + sender + '\'' +
                 ", timestamp='" + timestamp + '\'' +
                 ", read=" + read +
