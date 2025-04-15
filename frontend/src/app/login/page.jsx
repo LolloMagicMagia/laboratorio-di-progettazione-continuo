@@ -4,16 +4,61 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import "./styles.css";
 
+/**
+ * LoginPage Component - A page that allows users to log in using email/password.
+ *
+ * This component:
+ * - Allows the user to input an email and password to log in.
+ * - Sends the login credentials to a backend API for authentication.
+ * - Handles loading and error states.
+ * - Stores user data (UID and email) in `localStorage` upon successful login.
+ *
+ * @module frontend/page/src/app/login/page.jsx
+ * @returns {JSX.Element} The rendered login page.
+ */
 export default function LoginPage() {
   const router = useRouter();
+
+  /**
+   * The form state holding the user's email and password.
+   * @type {Object}
+   * @property {string} email - The user's email input.
+   * @property {string} password - The user's password input.
+   */
   const [form, setForm] = useState({ email: "", password: "" });
+
+  /**
+   * The loading state of the form, indicating whether the login request is in progress.
+   * @type {boolean}
+   */
   const [loading, setLoading] = useState(false);
+
+  /**
+   * The error state for displaying error messages during login.
+   * @type {string|null}
+   */
   const [error, setError] = useState(null);
 
+  /**
+   * Handles changes to the form input fields (email and password).
+   * Updates the form state accordingly.
+   * @function handleChange
+   * @param {Event} e - The event triggered by user input.
+   * @returns {void}
+   */
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  /**
+   * Handles the form submission for login.
+   * Sends a request to the backend API for authentication.
+   * Stores user data in localStorage upon successful login.
+   * @function handleSubmit
+   * @async
+   * @param {Event} e - The form submission event.
+   * @returns {void}
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);

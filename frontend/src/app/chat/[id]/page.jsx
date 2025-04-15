@@ -1,27 +1,111 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import API from "@/lib/api";
 
+/**
+ * ChatPage Component - Displays a single chat interface.
+ *
+ *
+ * This component:
+ * - Retrieves the chat ID from the URL
+ * - Loads chat and participant data
+ * - Polls for new messages
+ * - Allows the user to send new messages
+ *
+ * @module frontend/page/src/app/chat/id/page.jsx
+ * @returns {JSX.Element} The rendered chat page.
+ */
 export default function ChatPage() {
-  const params = useParams();
+  /**
+   * Parameters extracted from the route using `useParams` hook.
+   * @type {Object}
+   * @property {string} id - The ID of the current chat, extracted from the URL.
+   */
+  const params = useParams(); // <-- usa useParams
+
+  /**
+   * Search parameters from the URL using `useSearchParams` hook.
+   * @type {URLSearchParams}
+   */
   const searchParams = useSearchParams();
+
+  /**
+   * The title of the chat, either from the search parameters or defaulting to "Chat".
+   * @type {string}
+   */
   const title = searchParams.get("name") || "Chat";
+
+  /**
+   * The ID of the current chat, extracted from the `params` object.
+   * @type {string}
+   */
   const chatId = params?.id;
 
+  /**
+   * The state holding the current chat data.
+   * @type {Object|null}
+   */
   const [chat, setChat] = useState(null);
+
+  /**
+   * The state holding the list of messages in the current chat.
+   * @type {Array<Object>}
+   */
   const [messages, setMessages] = useState([]);
+
+  /**
+   * The ID of the current user.
+   * @type {string|null}
+   */
   const [currentUserId, setCurrentUserId] = useState(null);
+
+  /**
+   * The content of the new message being typed by the user.
+   * @type {string}
+   */
   const [newMessage, setNewMessage] = useState("");
+
+  /**
+   * The loading state for chat and messages.
+   * @type {boolean}
+   */
   const [loading, setLoading] = useState(true);
+
+  /**
+   * The loading state for sending a message.
+   * @type {boolean}
+   */
   const [sendingMessage, setSendingMessage] = useState(false);
+
+  /**
+   * The error message if any occurs during loading or interaction.
+   * @type {string|null}
+   */
   const [error, setError] = useState(null);
+
+  /**
+   * A map of user IDs to their corresponding user data.
+   * @type {Object}
+   */
   const [usersMap, setUsersMap] = useState({});
   const [openMenuId, setOpenMenuId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editedText, setEditedText] = useState("");
+
+  /**
+   * A reference to the bottom of the messages list, used for auto-scrolling.
+   * @type {React.RefObject}
+   */
   const messagesEndRef = useRef(null);
+  /**
+   * Router object for navigating programmatically.
+   * @type {Object}
+   * @property {function} push - Function to navigate to a new route.
+   */
   const router = useRouter();
 
   const markChatAsReadIfNeeded = () => {
@@ -41,6 +125,13 @@ export default function ChatPage() {
     }
   };
 
+  /**
+   * Loads chat, messages and user data on mount.
+   * Also sets up polling every 5 seconds.
+   * @function useEffect
+   * @async
+   * @returns {void}
+   */
   useEffect(() => {
     const id = localStorage.getItem("currentUserId");
     if (!id) {
@@ -138,9 +229,13 @@ export default function ChatPage() {
   }, [messages, chatId, currentUserId]);
 
 
-
-
-
+  /**
+   * Sends a message to the current chat.
+   * @function handleSendMessage
+   * @async
+   * @param {Event} e - The form submission event.
+   * @returns {Promise<void>}
+   */
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
@@ -195,12 +290,23 @@ export default function ChatPage() {
     setOpenMenuId((prev) => (prev === id ? null : id));
   };
 
+  /**
+   * Formats a timestamp string into "HH:mm".
+   * @function formatMessageTime
+   * @param {string} timestamp
+   * @returns {string}
+   */
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  /**
+   * Groups messages by the date they were sent.
+   * @function groupMessagesByDate
+   * @returns {Array<{ date: string, messages: Array<Object> }>}
+   */
   const groupMessagesByDate = () => {
     const groups = {};
     messages.forEach((message) => {
