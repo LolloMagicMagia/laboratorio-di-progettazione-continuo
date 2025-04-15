@@ -61,7 +61,7 @@ public class UserController {
     public void markChatAsRead(@PathVariable String chatId) {
         userService.markChatAsRead(chatId)
                 .thenAccept(aVoid -> {
-                    // Dopo aver aggiornato Firebase, invia l'intera lista aggiornata a tutti i client
+                    // Dopo aver aggiornato Firebase, invia la lista aggiornata al client
                     userService.getAllUsers().thenAccept(users -> {
                         messagingTemplate.convertAndSend("/topic/users", users);  // Notifica a tutti i client
                     });
