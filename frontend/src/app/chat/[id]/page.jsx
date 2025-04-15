@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import API from "@/lib/api";
-//sis
 
 export default function ChatPage() {
   const params = useParams();
