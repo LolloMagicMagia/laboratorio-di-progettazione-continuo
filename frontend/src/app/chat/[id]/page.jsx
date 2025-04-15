@@ -108,6 +108,13 @@ export default function ChatPage() {
    */
   const router = useRouter();
 
+  /**
+   * Loads chat, messages and user data on mount.
+   * Also sets up polling every 5 seconds.
+   * @function markChatAsReadIfNeeded
+   * @async
+   * @returns {void}
+   */
   const markChatAsReadIfNeeded = () => {
     const lastMsg = messages[messages.length - 1];
     const isLastFromOtherUser = lastMsg && lastMsg.sender !== currentUserId;
@@ -120,7 +127,7 @@ export default function ChatPage() {
         messages.length > 0 &&
         isLastFromOtherUser
     ) {
-      console.log("✅ Lettura aggiornata");
+      console.log("Lettura aggiornata");
       API.markChatAsRead(chatId).catch(console.error);
     }
   };

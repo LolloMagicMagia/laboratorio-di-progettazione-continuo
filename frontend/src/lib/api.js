@@ -9,7 +9,7 @@ const data = {
 
 
 const API = {
-    // 👤 Recupera l'utente corrente da localStorage
+    // Recupera l'utente corrente da localStorage
     getCurrentUser: async () => {
         const currentUserId = localStorage.getItem("currentUserId");
         if (!currentUserId || !data.users[currentUserId]) return null;
@@ -22,24 +22,24 @@ const API = {
         };
     },
 
-// 📦 Recupera SOLO l'utente corrente
+// Recupera SOLO l'utente corrente
     fetchUsers: async () => {
         const currentUserId = localStorage.getItem("currentUserId");
         const res = await fetch(`${API_BASE}/api/users/${currentUserId}`);
         const user = await res.json();
 
-        // ✅ Costruisci la mappa utenti con una sola entry
+        // Costruisci la mappa utenti con una sola entry
         const usersMap = {
             [currentUserId]: user
         };
 
         data.users = usersMap;
-        console.log("✅ Utente ricevuto:", data.users);
+        console.log("Utente ricevuto:", data.users);
 
         return usersMap;
     },
 
-    // ✅ Segna una chat come letta
+    // Segna una chat come letta
     markChatAsRead: async (chatId) => {
         const currentUserId = localStorage.getItem("currentUserId");
         if (!currentUserId) throw new Error("Utente non autenticato");
@@ -63,12 +63,12 @@ const API = {
         });
 
         client.onConnect = () => {
-            console.log("✅ WebSocket connesso!");
+            console.log("WebSocket connesso!");
 
             if (onUsersUpdate) {
-                console.log("✅ WebSocket dentro on user update!");
+                console.log("WebSocket dentro on user update!");
                 client.subscribe("/topic/users", (message) => {
-                    console.log("📩 Ricevuto messaggio WebSocket (Utenti):", message.body);
+                    console.log("Ricevuto messaggio WebSocket (Utenti):", message.body);
                     let usersData = JSON.parse(message.body);
                     if (Array.isArray(usersData)) {
                         usersData = Object.fromEntries(usersData.map((u) => [u.id, u]));
@@ -79,9 +79,9 @@ const API = {
             }
 
             if (onMessagesUpdate) {
-                console.log("✅ WebSocket dentro onMessagesUpdate!");
+                console.log("WebSocket dentro onMessagesUpdate!");
                 client.subscribe("/topic/chats", (message) => {
-                    console.log("📩 Ricevuto messaggio WebSocket (Messaggi):", message.body);
+                    console.log("Ricevuto messaggio WebSocket (Messaggi):", message.body);
                     let rawChats = JSON.parse(message.body);
 
                     // Estrai tutti i messaggi da ogni chat
@@ -99,7 +99,7 @@ const API = {
                         }));
                     });
 
-                    console.log("🧩 Messaggi normalizzati:", normalizedMessages);
+                    console.log("Messaggi normalizzati:", normalizedMessages);
                     onMessagesUpdate(normalizedMessages);
                 });
             }
@@ -108,7 +108,7 @@ const API = {
         return client;
     },
 
-    // 🔁 Altri metodi (presumo tu li abbia già implementati altrove)
+    // Altri metodi
     getChatById: (chatId) => {
         return fetch(`${API_BASE}/api/chats/${chatId}`).then((res) => res.json());
     },
